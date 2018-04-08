@@ -48,7 +48,7 @@ class Object3D(object):
         return new_3d_obj
 
 
-    def write_obj(self, filename=None, order='xyz', verbose=True):
+    def write_obj(self, filename=None, order='yzx', verbose=True):
         """
         Write the 3D object to an OBJ file.
         :param filename: output file path.
@@ -211,8 +211,8 @@ if __name__ == "__main__":
     parser.add_argument("--offset", action="store", type=float, nargs=3,
                         metavar=('OffsetX', 'OffsetY', 'OffsetZ'),
                         default=None,
-                        help="OffsetX OffsetY OffsetZ: makes X-OffsetX, Y-OffsetY, Z-OffsetZ before writing to OBJ."
-                             "Default is min(X) min(Y) 0."
+                        help="Computes X-OffsetX, Y-OffsetY, Z-OffsetZ before writing to OBJ"
+                             "(default: min(X) min(Y) 0)"
                         )
 
     parser.add_argument("-p", "--parse", action="store", type=str, nargs=1,
@@ -225,7 +225,7 @@ if __name__ == "__main__":
                         )
 
     parser.add_argument('-v', '--verbose', action='store_true',
-                        help='Makes scene repetitive.')
+                        help='Print processing details.')
     # Parse argument
     args = parser.parse_args()
 
