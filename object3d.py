@@ -200,7 +200,7 @@ if __name__ == "__main__":
 
     # Add argument
     parser.add_argument("input", action="store", type=str,
-                        help="Raster DEM image"
+                        help="DEM raster (1 layer) of any type supported by GDAL drivers."
                         )
 
     parser.add_argument("-o", "--output", action="store", type=str,
