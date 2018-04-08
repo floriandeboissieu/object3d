@@ -27,8 +27,8 @@ optional arguments:
                         Computes X-OffsetX, Y-OffsetY, Z-OffsetZ before
                         writing to OBJ(default: min(X) min(Y) 0)
   -p PARSE, --parse PARSE
-                        Coordinates order of vertex: default is yzx as is in
-                        blender.
+                        Coordinates order of vertex (default: 'yzx' as is in
+                        blender).
   -q, --quad            Make quadratic tessellation instead of triangular.
   -v, --verbose         Print processing details.
 ```

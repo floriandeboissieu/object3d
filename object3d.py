@@ -217,7 +217,7 @@ if __name__ == "__main__":
 
     parser.add_argument("-p", "--parse", action="store", type=str, nargs=1,
                         default='yzx',
-                        help="Coordinates order of vertex: default is yzx as is in blender."
+                        help="Coordinates order of vertex (default: 'yzx' as is in blender)."
                         )
 
     parser.add_argument("-q", "--quad", action="store_true",
