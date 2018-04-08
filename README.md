@@ -16,7 +16,8 @@ usage: object3d.py [-h] [-o OUTPUT] [--offset OffsetX OffsetY OffsetZ]
 Convert raster DEM to 3D OBJ
 
 positional arguments:
-  input                 Raster DEM image
+  input                 DEM raster (1 layer) of any type supported by GDAL
+                        drivers.
 
 optional arguments:
   -h, --help            show this help message and exit
