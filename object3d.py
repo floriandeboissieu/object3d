@@ -29,7 +29,8 @@ class Object3D(object):
         self.vertices = []
         self.faces = []
 
-    def from_raster(filename, offset=None, quad=False, verbose=False):
+    @classmethod
+    def from_raster(cls, filename, offset=None, quad=False, verbose=False):
         """
         Creates an Object3D from a raster of any type supported by GDAL drivers.
         :param offset: 3 element vector [offsetx, offsety, offsetz], removed from x,y,z coordinates.
@@ -38,13 +39,13 @@ class Object3D(object):
         :param verbose: if True prints details on processing.
         :return: an Object3D.
         """
-        new_3d_obj = Object3D()
+        new_3d_obj = cls()
         new_3d_obj.inputfile = filename
         new_3d_obj.offset = offset
         new_3d_obj.quad = quad
         new_3d_obj.input = read_raster(filename, verbose)
-        new_3d_obj.vertices = vertex_array_from_raster(new_3d_obj.input, new_3d_obj.offset, verbose)
-        new_3d_obj.faces = face_array_from_raster(new_3d_obj.input, new_3d_obj.quad)
+        new_3d_obj.create_vertex_array_from_raster(verbose)
+        new_3d_obj.create_face_array_from_raster()
         return new_3d_obj
 
 
@@ -100,6 +101,66 @@ class Object3D(object):
         #     elif faces.shape[1] == 4:
         #         np.savetxt(outfile, faces, fmt="f %i %i %i %i")
 
+    def create_vertex_array_from_raster(self, verbose=False):
+        '''
+        Create the vertex array on the raster.
+        :param raster: GDAL raster handle.
+        :param offset: 3 element vector [offsetx, offsety, offsetz], removed from x,y,z coordinates.
+        If `None`, it is set to [min(x), min(y), 0].
+        :param verbose: if True prints details on processing.
+        :return: Nx3 numpy array, with N the raster pixel count, and the columns x, y, z coordinates.
+        '''
+        transform = self.raster.GetGeoTransform()
+        width = self.raster.RasterXSize
+        height = self.raster.RasterYSize
+        x = np.arange(0, width) * transform[1] + transform[0]
+        y = np.arange(0, height) * transform[5] + transform[3]
+
+        if self.offset is None:
+            self.offset = [min(x), min(y), 0]
+
+        if verbose:
+            print("\nRemoved offsets: " + str(offset))
+
+        x = x - self.offset[0]
+        y = y - self.offset[1]
+
+        xx, yy = np.meshgrid(x, y)
+
+        if verbose:
+            print("\nReading raster data...")
+        zz = self.raster.ReadAsArray()
+        if verbose:
+            print("Done")
+        zz = zz - self.offset[2]
+        self.vertices = np.vstack((xx, yy, zz)).reshape([3, -1]).transpose()
+
+    def create_face_array_from_raster(self):
+        """
+        Create face array
+        :param raster: GDAL raster handle.
+        :param quad: shape of face, triangle if False, quadrilateral if True.
+        :return: NxM numpy array, with N the number of faces, M either 3 or 4 depending on quad argument.
+        """
+        width = self.raster.RasterXSize
+        height = self.raster.RasterYSize
+        quad = self.quad
+
+        ai = np.arange(0, width - 1)
+        aj = np.arange(0, height - 1)
+        aii, ajj = np.meshgrid(ai, aj)
+        a = aii + ajj * width
+        a = a.flatten()
+
+        if quad:  # rectangular mesh
+            faces = np.vstack((a, a + width, a + width + 1, a + 1))
+            faces = np.transpose(faces)
+        else:  # triangular mesh
+            faces = np.vstack((a, a + width, a + width + 1, a, a + width + 1, a + 1))
+            faces = np.transpose(faces).reshape([-1, 3])
+
+        self.faces=faces
+
 
 def read_raster(filename, verbose=False):
     '''
@@ -122,66 +183,8 @@ def read_raster(filename, verbose=False):
     return raster
 
 
-def vertex_array_from_raster(raster, offset=None, verbose=False):
-    '''
-    Create the vertex array on the raster.
-    :param raster: GDAL raster handle.
-    :param offset: 3 element vector [offsetx, offsety, offsetz], removed from x,y,z coordinates.
-    If `None`, it is set to [min(x), min(y), 0].
-    :param verbose: if True prints details on processing.
-    :return: Nx3 numpy array, with N the raster pixel count, and the columns x, y, z coordinates.
-    '''
-    transform = raster.GetGeoTransform()
-    width = raster.RasterXSize
-    height = raster.RasterYSize
-    x = np.arange(0, width) * transform[1] + transform[0]
-    y = np.arange(0, height) * transform[5] + transform[3]
-
-    if offset is None:
-        offset=[min(x), min(y), 0]
-
-    if verbose:
-        print("\nRemoved offsets: " + str(offset))
-
-    x = x - offset[0]
-    y = y - offset[1]
-
-    xx, yy = np.meshgrid(x, y)
-
-    if verbose:
-        print("\nReading raster data...")
-    zz = raster.ReadAsArray()
-    if verbose:
-        print("Done")
-    zz = zz - offset[2]
-    vertices = np.vstack((xx, yy, zz)).reshape([3, -1]).transpose()
-    return vertices
 
 
-def face_array_from_raster(raster, quad=False):
-    """
-    Create face array
-    :param raster: GDAL raster handle.
-    :param quad: shape of face, triangle if False, quadrilateral if True.
-    :return: NxM numpy array, with N the number of faces, M either 3 or 4 depending on quad argument.
-    """
-    width = raster.RasterXSize
-    height = raster.RasterYSize
-
-    ai = np.arange(0, width - 1)
-    aj = np.arange(0, height - 1)
-    aii, ajj = np.meshgrid(ai, aj)
-    a = aii + ajj * width
-    a = a.flatten()
-
-    if quad:  # rectangular mesh
-        faces = np.vstack((a, a + width, a + width + 1, a + 1))
-        faces = np.transpose(faces)
-    else:  # triangular mesh
-        faces = np.vstack((a, a + width, a + width + 1, a, a + width + 1, a + 1))
-        faces = np.transpose(faces).reshape([-1, 3])
-
-    return faces
 
 
 
@@ -189,7 +192,7 @@ def face_array_from_raster(raster, quad=False):
 
 
 def main(args):
-
+    args.inputfile="/home/boissieu/Data/Ortho/Guyane/2016/Paracou/TIF/Cibles.01.tif"
     new_3d_obj = Object3D.from_raster(args.inputfile, args.offset, args.quad, args.verbose)
     new_3d_obj.write_obj(args.output, args.order)
 
