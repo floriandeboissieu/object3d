@@ -16,7 +16,12 @@ Simple object 3D class based on OBJ format:
     - load from raster
     - write to obj
 Main script converts a GDAL raster DEM (Digital Elevation Model) image in 3D object in OBJ format.
-In further development it might be wise to use pyOpenGL... 
+In further development it might be wise to use pyOpenGL...
+
+Example:
+from object3d import Object
+new_3d_obj = Object3D.from_raster(inputfile, verbose=True)
+new_3d_obj.write_obj()
 """
 
 class Object3D(object):
@@ -110,9 +115,9 @@ class Object3D(object):
         :param verbose: if True prints details on processing.
         :return: Nx3 numpy array, with N the raster pixel count, and the columns x, y, z coordinates.
         '''
-        transform = self.raster.GetGeoTransform()
-        width = self.raster.RasterXSize
-        height = self.raster.RasterYSize
+        transform = self.input.GetGeoTransform()
+        width = self.input.RasterXSize
+        height = self.input.RasterYSize
         x = np.arange(0, width) * transform[1] + transform[0]
         y = np.arange(0, height) * transform[5] + transform[3]
 
@@ -120,7 +125,7 @@ class Object3D(object):
             self.offset = [min(x), min(y), 0]
 
         if verbose:
-            print("\nRemoved offsets: " + str(offset))
+            print("\nRemoved offsets: " + str(self.offset))
 
         x = x - self.offset[0]
         y = y - self.offset[1]
@@ -129,7 +134,7 @@ class Object3D(object):
 
         if verbose:
             print("\nReading raster data...")
-        zz = self.raster.ReadAsArray()
+        zz = self.input.ReadAsArray()
         if verbose:
             print("Done")
         zz = zz - self.offset[2]
@@ -142,8 +147,8 @@ class Object3D(object):
         :param quad: shape of face, triangle if False, quadrilateral if True.
         :return: NxM numpy array, with N the number of faces, M either 3 or 4 depending on quad argument.
         """
-        width = self.raster.RasterXSize
-        height = self.raster.RasterYSize
+        width = self.input.RasterXSize
+        height = self.input.RasterYSize
         quad = self.quad
 
         ai = np.arange(0, width - 1)
@@ -159,7 +164,7 @@ class Object3D(object):
             faces = np.vstack((a, a + width, a + width + 1, a, a + width + 1, a + 1))
             faces = np.transpose(faces).reshape([-1, 3])
 
-        self.faces=faces
+        self.faces = faces+1
 
 
 def read_raster(filename, verbose=False):
@@ -183,18 +188,10 @@ def read_raster(filename, verbose=False):
     return raster
 
 
-
-
-
-
-
-
-
-
 def main(args):
-    args.inputfile="/home/boissieu/Data/Ortho/Guyane/2016/Paracou/TIF/Cibles.01.tif"
+    args.inputfile="/home/boissieu/Data/Ortho/Guyane/2016/Paracou/TIF/dtm_cibles.tif"
     new_3d_obj = Object3D.from_raster(args.inputfile, args.offset, args.quad, args.verbose)
-    new_3d_obj.write_obj(args.output, args.order)
+    new_3d_obj.write_obj(args.output, args.parse)
 
 
 if __name__ == "__main__":
